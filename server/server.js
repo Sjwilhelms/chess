@@ -6,10 +6,13 @@ import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(
     import.meta.url);
+    
 const __dirname = dirname(__filename);
 
 // initialise express app
 const app = express();
+
+app.use(express.static(join(__dirname, '../public')));
 
 // initialise http server
 const server = createServer(app);
