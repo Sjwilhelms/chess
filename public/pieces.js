@@ -35,17 +35,20 @@ export function setupInitialPosition() {
     };
 
     for (const [squareId, pieceInfo] of Object.entries(initialPosition)) {
+
+        // get the squares by ID as generated in chessboard.js
         const square = document.getElementById(squareId);
+
         if (square) {
 
-            square.dataset.position = squareId;
-
+            // create the pieces and assign their datasets
             const pieceElement = document.createElement("div");
             pieceElement.className = "piece";
             pieceElement.textContent = pieceInfo.symbol;
             pieceElement.dataset.color = pieceInfo.color;
-            pieceElement.dataset.color = pieceInfo.type;
+            pieceElement.dataset.type = pieceInfo.type;
 
+            // clear and populate initial position squares
             square.textContent = "";
             square.appendChild(pieceElement);
         }
