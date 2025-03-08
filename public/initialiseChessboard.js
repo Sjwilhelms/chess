@@ -1,59 +1,157 @@
-let currentPosition = {};
+// game state variables
 
+let currentPosition = {};
+let activePlayer = "white";
+let moveHistory = [];
+let gameStatus = "active";
+let castlingRights = {
+    white: { kingSide: true, queenSide: true },
+    black: { kingSide: true, queenSide: true },
+}
+let enPassantTarget = null;
+
+// utility functions 
+
+// updates currentPosition object when a piece moves
+// takes the starting square and the destination square
 function updatePosition(fromSquareId, toSquareId) {
+
+    // finds the destination square
     const piece = document.getElementById(toSquareId).querySelector('.piece');
 
+    // checks if a piece is at the destination
     if (piece) {
+
+        // if piece is found it removes the old position from the state
         if (currentPosition[fromSquareId]) {
             delete currentPosition[fromSquareId];
         }
+
+        // adds the new position to the state
         currentPosition[toSquareId] = {
             symbol: piece.textContent,
             color: piece.dataset.color,
             type: piece.dataset.type,
             id: piece.dataset.id,
         }
+
+        // logs to the console for debugging
         console.log("Updated position:", currentPosition);
     }
 }
 
+// validates a chess move according to chess rules
+function isValidMove(fromSquare, toSquare, piece) {
+
+    // checks if it's the active players turn
+    if (piece.dataset.color !== activePlayer) return false;
+
+    // piece specific validation logic
+    switch (piece.dataset.type) {
+        case "pawn":
+            return isValidPawnMove(fromSquare, toSquare, piece);
+        case "knight":
+            return isValidKnightMove(fromSquare, toSquare, piece);
+        case "bishop":
+            return isValidBishopMove(fromSquare, toSquare, piece);
+        case "rook":
+            return isValidRookMove(fromSquare, toSquare, piece);
+        case "queen":
+            return isValidQueenMove(fromSquare, toSquare, piece);
+        case "king":
+            return isValidKingMove(fromSquare, toSquare, piece);
+        default:
+            return false;
+    }
+}
+
+// convert algebraic notation to coordinates
+function notationToCoordinates(squareId) {
+    const file = squareId.charCodeAt(0) - 'a'.charCodeAt(0);
+    const rank = parseInt(squareId[1]) - 1;
+    return { file, rank };
+}
+
+// convert coordinates to algebraic notation
+function coordinatesToNotation(file, rank) {
+    return String.fromCharCode('a'.charCodeAt(0) + file) + (rank + 1);
+}
+
+// check if a square is occupied
+function isOccupied(squareId) {
+
+    // returns true if square is occupied by any piece
+    return currentPosition[squareId] !== undefined;
+}
+
+// check if a square is occupied by an opponent
+function isOccupiedByOpponent(squareId, playerColor) {
+
+    // returns true if occupied by an opponents piece
+    return isOccupied(squareId) && currentPosition[squareId].color !== playerColor;
+}
+
+// html drag and drop event handler functions
+
 function handleDragStart(e) {
+    // store the dragged piece's id in the drag data transfer
     e.dataTransfer.setData("text", this.dataset.id);
+
+    // specify "move" behaviour
     e.dataTransfer.effectAllowed = "move";
 }
 
 function handleDragOver(e) {
+    // default behaviour would block drops
     e.preventDefault();
+
+    // specify "move" behaviour
     e.dataTransfer.dropEffect = "move";
 }
 
 function handleDrop(e) {
+
+    // default behaviour would block drops
     e.preventDefault();
+
+    // get the id from the data transfer
     const pieceId = e.dataTransfer.getData("text");
+
+    // get the id from the piece being dragged
     const draggedPiece = document.querySelector(`.piece[data-id="${pieceId}"]`);
+
+    // exit if piece not found
     if (!draggedPiece) return;
 
+    // get the square the piece is coming from
     const sourceSquare = draggedPiece.parentNode;
 
+    // get the drop target square
     let targetSquare = e.target;
+
+    // if dropped directly on a piece get it's parent square instead
     if (targetSquare.classList.contains('piece')) {
         targetSquare = targetSquare.parentNode;
     }
 
+    // piece capture! remove any existing piece at the target
     const existingPiece = targetSquare.querySelector('.piece');
     if (existingPiece && existingPiece !== draggedPiece) {
         targetSquare.removeChild(existingPiece);
     }
 
+    // move the piece in the target square
     targetSquare.appendChild(draggedPiece);
 
+    // uupdate the board state object
     updatePosition(sourceSquare.id, targetSquare.id);
 }
-
 
 function handleDragEnd(e) {
     // as yet unsure what to do here
 }
+
+// initialise chessboard and its drag and drop handlers
 
 export function create_chessboard() {
     const chessboard = document.querySelector('.chessboard');
@@ -98,6 +196,8 @@ export function create_chessboard() {
 
 
 };
+
+// initialise pieces and their drag and drop handlers 
 
 export function setupInitialPosition() {
     const initialPosition = {
