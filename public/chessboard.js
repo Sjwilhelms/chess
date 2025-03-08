@@ -30,10 +30,14 @@ export function create_chessboard() {
 
             // put the squares in the chessboard
             chessboard.appendChild(square);
+
+            // add event listeners to each square
+            square.addEventListener("dragover", handleDragOver);
+            square.addEventListener("drop", handleDrop);
+
+
         }
     }
 
-    // to do: add event listeners for the squares
-    square.addEventListener("dragover", handleDragOver);
-    square.addEventListener("drop", handleDrop);
+
 };

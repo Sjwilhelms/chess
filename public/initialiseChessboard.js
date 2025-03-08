@@ -1,3 +1,104 @@
+let currentPosition = {};
+
+function updatePosition(fromSquareId, toSquareId) {
+    const piece = document.getElementById(toSquareId).querySelector('.piece');
+
+    if (piece) {
+        if (currentPosition[fromSquareId]) {
+            delete currentPosition[fromSquareId];
+        }
+        currentPosition[toSquareId] = {
+            symbol: piece.textContent,
+            color: piece.dataset.color,
+            type: piece.dataset.type,
+            id: piece.dataset.id,
+        }
+        console.log("Updated position:", currentPosition);
+    }
+}
+
+function handleDragStart(e) {
+    e.dataTransfer.setData("text", this.dataset.id);
+    e.dataTransfer.effectAllowed = "move";
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const pieceId = e.dataTransfer.getData("text");
+    const draggedPiece = document.querySelector(`.piece[data-id="${pieceId}"]`);
+    if (!draggedPiece) return;
+
+    const sourceSquare = draggedPiece.parentNode;
+
+    let targetSquare = e.target;
+    if (targetSquare.classList.contains('piece')) {
+        targetSquare = targetSquare.parentNode;
+    }
+
+    const existingPiece = targetSquare.querySelector('.piece');
+    if (existingPiece && existingPiece !== draggedPiece) {
+        targetSquare.removeChild(existingPiece);
+    }
+
+    targetSquare.appendChild(draggedPiece);
+
+    updatePosition(sourceSquare.id, targetSquare.id);
+}
+
+
+function handleDragEnd(e) {
+    // as yet unsure what to do here
+}
+
+export function create_chessboard() {
+    const chessboard = document.querySelector('.chessboard');
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+    // loop down the ranks
+    for (let rank = 8; rank >= 1; rank--) {
+
+        // loop up the files
+        for (let fileIndex = 0; fileIndex < 8; fileIndex++) {
+
+            // files are index of files
+            const file = files[fileIndex];
+
+            // position is file + rank
+            const position = file + rank;
+
+            // create each square
+            const square = document.createElement("div");
+
+            // give it a class
+            square.className = "square";
+
+            // give it an id based on position
+            square.id = position;
+            square.dataset.position = position;
+
+            // alternating colours
+            const isDark = (files.indexOf(file) + rank) % 2 !== 0;
+            square.className = `square ${isDark ? 'dark' : 'light'}`;
+
+            // put the squares in the chessboard
+            chessboard.appendChild(square);
+
+            // add event listeners to each square
+            square.addEventListener("dragover", handleDragOver);
+            square.addEventListener("drop", handleDrop);
+
+
+        }
+    }
+
+
+};
+
 export function setupInitialPosition() {
     const initialPosition = {
         a1: {
@@ -215,8 +316,13 @@ export function setupInitialPosition() {
             // clear and populate initial position squares
             square.textContent = "";
             square.appendChild(pieceElement);
+
+            // add event listeners to each piece
+            pieceElement.addEventListener("dragstart", handleDragStart);
+            pieceElement.addEventListener("dragend", handleDragEnd);
         }
     }
+
 
 
 

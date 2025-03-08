@@ -1,8 +1,8 @@
-import { create_chessboard } from './chessboard.js';
-import { setupInitialPosition } from './pieces.js';
-import { dragstartHandler } from './game.js';
+import { create_chessboard } from './initialiseChessboard.js';
+import { setupInitialPosition } from './initialiseChessboard.js';
+// import { dragstartHandler } from './game.js';
 
 
 create_chessboard();
 setupInitialPosition();
-dragstartHandler();
+// dragstartHandler();
