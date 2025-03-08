@@ -32,4 +32,8 @@ export function create_chessboard() {
             chessboard.appendChild(square);
         }
     }
+
+    // to do: add event listeners for the squares
+    square.addEventListener("dragover", handleDragOver);
+    square.addEventListener("drop", handleDrop);
 };
