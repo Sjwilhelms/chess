@@ -24,7 +24,7 @@ export function create_chessboard() {
             square.id = position;
             square.dataset.position = position;
 
-            // alternative colours
+            // alternating colours
             const isDark = (files.indexOf(file) + rank) % 2 !== 0;
             square.className = `square ${isDark ? 'dark' : 'light'}`;
 
