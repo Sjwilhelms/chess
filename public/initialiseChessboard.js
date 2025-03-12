@@ -76,7 +76,7 @@ function isValidPawnMove(fromSquare, toSquare, piece) {
 
     // calculate change in rank and file
     const rankDiff = to.rank - from.rank;
-    const fileDiff = Math.abs(to.file - from.file)
+    const fileDiff = Math.abs(to.file - from.file);
 
     // forward movement
     if (from.file === to.file) {
@@ -85,22 +85,30 @@ function isValidPawnMove(fromSquare, toSquare, piece) {
         }
 
         // first move can be two squares forwarsd
+        // the start rank is 2 and 7 -- remember we are zero index
         const startRank = color === "white" ? 1 : 6;
         if (from.rank === startRank && rankDiff === 2 * direction && !isOccupied(toSquare) && !isOccupied(coordinatesToNotation(from.file, from.rank + direction))) {
             return true;
         }
+        return false;
+    }
+
+    // capture logic
+    if (fileDiff === 1 && rankDiff === direction) {
 
         // diagonal capture
         if (isOccupiedByOpponent(toSquare, color)) {
             return true;
         }
+
+        // enpassant capture
         if (toSquare === enPassantTarget) {
             return true;
         }
     }
+
     // or no valid move was found
     return false;
-
 }
 
 // convert algebraic notation to coordinates
