@@ -65,6 +65,44 @@ function isValidMove(fromSquare, toSquare, piece) {
     }
 }
 
+function isValidPawnMove(fromSquare, toSquare, piece) {
+    // convert squares to coordinates
+    const from = notationToCoordinates(fromSquare);
+    const to = notationToCoordinates(toSquare);
+    const color = piece.dataset.color;
+
+    // determine direction of movement
+    const direction = color === "white" ? 1 : -1;
+
+    // calculate change in rank and file
+    const rankDiff = to.rank - from.rank;
+    const fileDiff = Math.abs(to.file - from.file)
+
+    // forward movement
+    if (from.file === to.file) {
+        if (rankDiff === direction && !isOccupied(toSquare)) {
+            return true;
+        }
+
+        // first move can be two squares forwarsd
+        const startRank = color === "white" ? 1 : 6;
+        if (from.rank === startRank && rankDiff === 2 * direction && !isOccupied(toSquare) && !isOccupied(coordinatesToNotation(from.file, from.rank + direction))) {
+            return true;
+        }
+
+        // diagonal capture
+        if (isOccupiedByOpponent(toSquare, color)) {
+            return true;
+        }
+        if (toSquare === enPassantTarget) {
+            return true;
+        }
+    }
+    // or no valid move was found
+    return false;
+
+}
+
 // convert algebraic notation to coordinates
 function notationToCoordinates(squareId) {
     const file = squareId.charCodeAt(0) - 'a'.charCodeAt(0);
@@ -158,7 +196,7 @@ function handleDrop(e) {
 }
 
 function handleDragEnd(e) {
-    // as yet unsure what to do here
+    // as yet unsure what to put here
 }
 
 // initialise chessboard and its drag and drop handlers
