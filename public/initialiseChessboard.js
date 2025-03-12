@@ -172,6 +172,10 @@ function handleDrop(e) {
         targetSquare = targetSquare.parentNode;
     }
 
+    if (!isValidMove(sourceSquare.id, targetSquare.id, draggedPiece)) {
+        return;
+    }
+
     // piece capture! remove any existing piece of the opposite color at the target
     // is there a piece in the square?
     const existingPiece = targetSquare.querySelector('.piece');
