@@ -134,16 +134,21 @@ function handleDrop(e) {
         targetSquare = targetSquare.parentNode;
     }
 
-    // piece capture! remove any existing piece at the target
+    // piece capture! remove any existing piece of the opposite color at the target
     const existingPiece = targetSquare.querySelector('.piece');
-    if (existingPiece && existingPiece !== draggedPiece) {
+    if (existingPiece && existingPiece !== draggedPiece && existingPiece.dataset.color !== draggedPiece.dataset.color) {
         targetSquare.removeChild(existingPiece);
+    }
+
+    // enable default behaviour when same color tries to take same colour
+    if (existingPiece.dataset.color === draggedPiece.dataset.color) {
+        e.default();
     }
 
     // move the piece in the target square
     targetSquare.appendChild(draggedPiece);
 
-    // uupdate the board state object
+    // update the board state object
     updatePosition(sourceSquare.id, targetSquare.id);
 }
 
