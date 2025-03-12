@@ -135,23 +135,19 @@ function handleDrop(e) {
     }
 
     // piece capture! remove any existing piece of the opposite color at the target
+    // is there a piece in the square?
     const existingPiece = targetSquare.querySelector('.piece');
-
     // check if there's a piece in the target square
     if (existingPiece) {
-        // check if the pieces are different colors
-        if (existingPiece !== draggedPiece && existingPiece.dataset.color !== draggedPiece.dataset.color) {
-            // take the piece
-            targetSquare.removeChild(existingPiece);
-            // if the pieces are the same color nothing happens
-        } else if (existingPiece !== draggedPiece && existingPiece.dataset.color === draggedPiece.dataset.color) {
+        // if the pieces are the same color nothing happens
+        if (existingPiece !== draggedPiece && existingPiece.dataset.color === draggedPiece.dataset.color) {
             return;
-            // if it's an empty square move the piece into it
-        } else {
-            targetSquare.appendChild(draggedPiece);
+        }
+        // piece capture! remove the opponents piece
+        if (existingPiece !== draggedPiece && existingPiece.dataset.color !== draggedPiece.dataset.color) {
+            targetSquare.removeChild(existingPiece);
         }
     }
-
 
     // move the piece in the target square
     targetSquare.appendChild(draggedPiece);
