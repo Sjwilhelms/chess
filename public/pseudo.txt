@@ -8,7 +8,8 @@ const rankDiff
 const fileDiff
 
 loop
-if !from.rank === to.rank || !from.file === to.file
+if !from.rank === to.rank ||
+!from.file === to.file
 return false
 
 if from.rank === to.rank

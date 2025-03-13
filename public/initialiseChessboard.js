@@ -83,11 +83,13 @@ function isValidPawnMove(fromSquare, toSquare, piece) {
         if (rankDiff === direction && !isOccupied(toSquare)) {
             return true;
         }
-
         // first move can be two squares forwarsd
         // the start rank is 2 and 7 -- remember we are zero index
         const startRank = color === "white" ? 1 : 6;
-        if (from.rank === startRank && rankDiff === 2 * direction && !isOccupied(toSquare) && !isOccupied(coordinatesToNotation(from.file, from.rank + direction))) {
+        if (from.rank === startRank &&
+            rankDiff === 2 * direction &&
+            !isOccupied(toSquare) &&
+            !isOccupied(coordinatesToNotation(from.file, from.rank + direction))) {
             return true;
         }
         return false;
@@ -110,6 +112,47 @@ function isValidPawnMove(fromSquare, toSquare, piece) {
     // or no valid move was found
     return false;
 }
+
+function isValidRookMove(fromSquare, toSquare, piece) {
+
+    // convert squares to coordinates
+    const from = notationToCoordinates(fromSquare);
+    const to = notationToCoordinates(toSquare);
+    const color = piece.dataset.color;
+
+    // calculate change in rank and file
+    const rankDiff = to.rank - from.rank;
+    const fileDiff = Math.abs(to.file - from.file);
+
+    // movement 
+    if (!(from.file === to.file || from.rank === to.rank)) {
+        return false;
+    }
+
+    if (from.file === to.file) {
+        const step = from.file < to.file ? 1 : -1;
+        for (let f = from.file + step; f !== to.file; f += step) {
+            if (isOccupied(coordinatesToNotation(f, from.file))) {
+                return false;
+            }
+        }
+    } else {
+        const step = from.rank < to.rank ? 1 : -1;
+        for (let r = from.rank + step; r !== to.rank; r += step) {
+            if (isOccupied(coordinatesToNotation(from.rank, r))) {
+                return false;
+            }
+        }
+    }
+
+    if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
+        return false;
+    }
+    return true;
+
+}
+
+
 
 // convert algebraic notation to coordinates
 function notationToCoordinates(squareId) {
