@@ -101,7 +101,20 @@ function isValidPawnMove(fromSquare, toSquare, piece) {
         // diagonal capture
         if (isOccupiedByOpponent(toSquare, color)) {
             return true;
+
         }
+        // In the diagonal capture section
+        console.log("Pawn capture attempt:", {
+            fromSquare,
+            toSquare,
+            fileDiff,
+            rankDiff,
+            direction,
+            isOccupied: isOccupied(toSquare),
+            targetPiece: currentPosition[toSquare],
+            isOpponent: isOccupiedByOpponent(toSquare, color)
+        });
+        console.log("Current board state:", currentPosition);
 
         // enpassant capture
         if (toSquare === enPassantTarget) {
@@ -498,6 +511,7 @@ export function setupInitialPosition() {
         }
     };
 
+    currentPosition = initialPosition;
     // for each object in initial position we get pairs of square id and piece info
     for (const [squareId, pieceInfo] of Object.entries(initialPosition)) {
 
