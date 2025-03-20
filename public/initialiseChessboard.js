@@ -188,9 +188,43 @@ function isValidRookMove(fromSquare, toSquare, piece) {
     return true;
 }
 
+function isValidBishopMove(fromSquare, toSquare, piece) {
+    // convert squares to coordinates
+    const from = notationToCoordinates(fromSquare);
+    const to = notationToCoordinates(toSquare);
+    const color = piece.dataset.color;
 
+    // calculate change in rank and file
+    const rankDiff = Math.abs(to.rank - from.rank);
+    const fileDiff = Math.abs(to.file - from.file);
 
+    if (fileDiff !== rankDiff) {
+        return false;
+    }
 
+    let fileStep = (from.file < to.file) ? 1 : -1;
+    let rankStep = (from.rank < to.rank) ? 1 : -1;
+
+    let currFile = from.file + fileStep;
+    let currRank = from.rank + rankStep;
+
+    while (currFile !== to.file && currRank !== to.rank) {
+        let currSquare = coordinatesToNotation(currFile, currRank);
+
+        if (isOccupied(currSquare)) {
+            return false;
+        }
+
+        currFile = currFile + fileStep;
+        currRank = currRank + rankStep;
+    }
+
+    if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
+        return false;
+    }
+
+    return true;
+}
 
 // convert algebraic notation to coordinates
 function notationToCoordinates(squareId) {
