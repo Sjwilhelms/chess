@@ -66,6 +66,28 @@ function isValidMove(fromSquare, toSquare, piece) {
     }
 }
 
+// validates a chess move for seeing if the king is in check
+function isValidMoveIgnoringTurns(fromSquare, toSquare, piece) {
+
+    // piece specific validation logic
+    switch (piece.dataset.type) {
+        case "pawn":
+            return isValidPawnMove(fromSquare, toSquare, piece);
+        case "knight":
+            return isValidKnightMove(fromSquare, toSquare, piece);
+        case "bishop":
+            return isValidBishopMove(fromSquare, toSquare, piece);
+        case "rook":
+            return isValidRookMove(fromSquare, toSquare, piece);
+        case "queen":
+            return isValidQueenMove(fromSquare, toSquare, piece);
+        case "king":
+            return isValidKingMove(fromSquare, toSquare, piece);
+        default:
+            return false;
+    }
+}
+
 // rule for pawns normal movement
 function isValidPawnMove(fromSquare, toSquare, piece) {
     // convert squares to coordinates
@@ -263,10 +285,16 @@ function isValidKingMove(fromSquare, toSquare, piece) {
     const from = notationToCoordinates(fromSquare);
     const to = notationToCoordinates(toSquare);
     const color = piece.dataset.color;
+    const type = piece.dataset.type;
 
     // calculate change in rank and file
     const rankDiff = Math.abs(to.rank - from.rank);
     const fileDiff = Math.abs(to.file - from.file);
+
+    // Check for castling first
+    if (fileDiff === 2 && rankDiff === 0) {
+        return isValidCastlingMove(fromSquare, toSquare, piece);
+    }
 
     if (rankDiff > 1 || fileDiff > 1) {
         return false;
@@ -278,8 +306,203 @@ function isValidKingMove(fromSquare, toSquare, piece) {
     if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
         return false;
     }
-
     return true;
+}
+
+// CASTLING
+function isValidCastlingMove(fromSquare, toSquare, piece) {
+    const color = piece.dataset.color;
+
+    if (color === "white" && fromSquare !== "e1") {
+        return false;
+    }
+
+    if (color === "black" && fromSquare !== "e8") {
+        return false;
+    }
+
+    let isKingSideCastling = false;
+    let isQueenSideCastling = false;
+
+    if (color === "white" && toSquare === "g1") {
+        isKingSideCastling = true;
+    } else if (color === "white" && toSquare === "c1") {
+        isQueenSideCastling = true;
+    } else if (color === "black" && toSquare === "g8") {
+        isKingSideCastling = true;
+    } else if (color === "black" && toSquare === "c8") {
+        isQueenSideCastling = true
+    } else {
+        return false;
+    }
+
+    if (isKingSideCastling && !castlingRights[color].kingSide) {
+        return false;
+    }
+
+    if (isQueenSideCastling && !castlingRights[color].queenSide) {
+        return false;
+    }
+
+
+    let rookSquare = "";
+    if (isKingSideCastling && color === "white") {
+        rookSquare = "h1";
+    } else if (isQueenSideCastling && color === "white") {
+        rookSquare = "a1";
+    } else if (isKingSideCastling && color === "black") {
+        rookSquare = "h8";
+    } else if (isQueenSideCastling && color === "black") {
+        rookSquare = "a8";
+    }
+
+    let rookPiece = getPieceOnSquare(rookSquare);
+
+    if (rookPiece === "null" || rookPiece.type !== "rook" || rookPiece.color !== color) {
+        return false;
+    }
+
+
+    let betweenSquares = [];
+    if (isKingSideCastling && color === "white") {
+        betweenSquares = ["f1", "g1"];
+    }
+
+    if (isQueenSideCastling && color === "white") {
+        betweenSquares = ["b1", "c1", "d1"];
+    }
+    if (isKingSideCastling && color === "black") {
+        betweenSquares = ["f8", "g8"];
+    }
+
+    if (isQueenSideCastling && color === "black") {
+        betweenSquares = ["b8", "c8", "d8"];
+    }
+
+    for (const square of betweenSquares) {
+        if (isOccupied(square)) {
+            return false;
+        }
+    }
+
+    if (isKingInCheck(color)) {
+        return false;
+    }
+
+    let kingPassesThrough = [];
+
+    if (isKingSideCastling && color === "white") {
+        kingPassesThrough = ["f1"];
+    } else if (isQueenSideCastling && color === "white") {
+        kingPassesThrough = ["d1"];
+    } else if (isKingSideCastling && color === "black") {
+        kingPassesThrough = ["f8"];
+    } else if (isQueenSideCastling && color === "black") {
+        kingPassesThrough = ["d8"];
+    }
+
+    for (const square of kingPassesThrough) {
+        if (wouldKingBeInCheckAt(square, color)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function isKingInCheck(color) {
+    let kingSquare = null;
+    for (const [square, pieceInfo] of Object.entries(currentPosition)) {
+        if (pieceInfo.type === "king" && pieceInfo.color === color) {
+            kingSquare = square;
+            break;
+        }
+    }
+
+    if (kingSquare === null) {
+        return false;
+    }
+
+    const opponentColor = color === "white" ? "black" : "white";
+
+    for (const [square, pieceInfo] of Object.entries(currentPosition)) {
+        if (pieceInfo.color === opponentColor) {
+            const attackingPiece = {
+                dataset: {
+                    type: pieceInfo.type,
+                    color: pieceInfo.color
+                }
+            }
+            if (isValidMoveIgnoringTurns(square, kingSquare, attackingPiece)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function wouldKingBeInCheckAt(targetSquare, color) {
+    let kingSquare = null;
+
+    for (const [square, pieceinfo] of Object.entries(currentPosition)) {
+        if (pieceinfo.type === "king" && pieceinfo.color === color) {
+            kingSquare = square;
+            break;
+        }
+    }
+    if (kingSquare === null) {
+        return false;
+    }
+
+    const originalPosition = JSON.parse(JSON.stringify(currentPosition));
+
+    const tempPosition = JSON.parse(JSON.stringify(currentPosition));
+
+    const kingPiece = tempPosition[kingSquare];
+    delete tempPosition[kingSquare];
+    tempPosition[targetSquare] = kingPiece;
+
+    const opponentColor = (color === "white" ? "black" : "white");
+
+    let isKingInCheck = false;
+
+    for (const [square, pieceInfo] of Object.entries(tempPosition)) {
+        if (pieceInfo.color === opponentColor) {
+            let attackingPiece = {
+                dataset: {
+                    type: pieceInfo.type,
+                    color: pieceInfo.color
+                }
+            }
+
+            if (isValidMoveWithCustomBoard(square, targetSquare, attackingPiece, tempPosition)) {
+                isKingInCheck = true;
+                break;
+            }
+        }
+    }
+    currentPosition = originalPosition;
+
+    return isKingInCheck;
+}
+
+
+function isValidMoveWithCustomBoard(fromSquare, toSquare, piece, customBoard) {
+    const originalPosition = currentPosition;
+
+    currentPosition = customBoard;
+
+    const isValid = isValidMoveIgnoringTurns(fromSquare, toSquare, piece);
+
+    currentPosition = originalPosition;
+
+    return isValid;
+}
+
+function getPieceOnSquare(squareId) {
+    const square = document.getElementById(squareId);
+    if (!square) return null;
+
+    return square.querySelector('.piece');
 }
 
 // convert algebraic notation to coordinates
@@ -431,11 +654,54 @@ function handleDrop(e) {
         enPassantTarget = null;
     }
 
+    if (draggedPiece.dataset.type === "king") {
+        const from = notationToCoordinates(sourceSquare.id);
+        const to = notationToCoordinates(targetSquare.id);
+
+        if (Math.abs(to.file - from.file) === 2) {
+            let rookFromSquare, rookToSquare;
+
+            if (targetSquare.id === "g1") {
+                rookFromSquare = "h1";
+                rookToSquare = "f1";
+            } else if (targetSquare.id === "c1") {
+                rookFromSquare = "a1";
+                rookToSquare = "d1";
+            } else if (targetSquare.id === "g8") {
+                rookFromSquare = "h8";
+                rookToSquare = "f8";
+            } else if (targetSquare.id === "c8") {
+                rookFromSquare = "a8";
+                rookToSquare = "d8";
+            }
+
+            const rookElement = document.getElementById(rookFromSquare).querySelector(".piece");
+            document.getElementById(rookToSquare).appendChild(rookElement);
+
+            updatePosition(rookFromSquare, rookToSquare);
+        }
+
+        castlingRights[draggedPiece.dataset.color].kingSide = false;
+        castlingRights[draggedPiece.dataset.color].queenSide = false;
+
+    }
+
+
+    if (draggedPiece.dataset.type === "rook") {
+        if (sourceSquare.id === "a1") {
+            castlingRights.white.queenSide = false;
+        } else if (sourceSquare.id === "h1") {
+            castlingRights.white.kingSide = false;
+        } else if (sourceSquare.id === "a8") {
+            castlingRights.black.queenSide = false;
+        } else if (sourceSquare.id === "h8") {
+            castlingRights.black.kingSide = false;
+        }
+    }
     // switch turns
     activePlayer = activePlayer === "white" ? "black" : "white";
 
     updateTurnIndicator();
-
 }
 
 function handleDragEnd(e) {
