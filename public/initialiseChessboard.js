@@ -137,8 +137,6 @@ function isValidRookMove(fromSquare, toSquare, piece) {
     const to = notationToCoordinates(toSquare);
     const color = piece.dataset.color;
 
-
-
     // rook must not change file or rank
     if (!(from.file === to.file || from.rank === to.rank)) {
         return false;
@@ -244,6 +242,39 @@ function isValidBishopMove(fromSquare, toSquare, piece) {
 
         currFile = currFile + fileStep;
         currRank = currRank + rankStep;
+    }
+
+    if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
+        return false;
+    }
+
+    return true;
+}
+
+// rule for queens normal movement
+function isValidQueenMove(fromSquare, toSquare, piece) {
+    return isValidRookMove(fromSquare, toSquare, piece) ||
+        isValidBishopMove(fromSquare, toSquare, piece);
+}
+
+// rule for kings normal movement
+function isValidKingMove(fromSquare, toSquare, piece) {
+    // convert squares to coordinates
+    const from = notationToCoordinates(fromSquare);
+    const to = notationToCoordinates(toSquare);
+    const color = piece.dataset.color;
+
+    // calculate change in rank and file
+    const rankDiff = Math.abs(to.rank - from.rank);
+    const fileDiff = Math.abs(to.file - from.file);
+
+    // combine the rules for the rook and the bishop
+    if (!(from.file === to.file || from.rank === to.rank || !(fileDiff !== rankDiff))) {
+        return false;
+    }
+
+    if (rankDiff !== 1 || fileDiff !== 1) {
+        return false;
     }
 
     if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
