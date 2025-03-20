@@ -266,24 +266,8 @@ function handleDrop(e) {
             // set en passant target to the square behind the pawn
             const passedRank = (from.rank + to.rank) / 2;
             enPassantTarget = coordinatesToNotation(to.file, passedRank);
-        } else {
-
         }
     }
-
-    if (draggedPiece.dataset.type === "pawn" && targetSquare.id === enPassantTarget) {
-
-        // determine the location of the pawn being captured
-        const to = notationToCoordinates(targetSquare.id);
-        const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank + 1 : to.rank - 1;
-        const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
-        const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
-        if (capturedPawnElement) {
-            document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
-            delete currentPosition[capturedPawnSquare];
-        }
-    }
-
 
     // move the piece in the target square
     targetSquare.appendChild(draggedPiece);
