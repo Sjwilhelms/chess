@@ -2,6 +2,7 @@
 
 let currentPosition = {};
 let activePlayer = "white";
+let currentTurn = 0;
 let moveHistory = [];
 let gameStatus = "active";
 let castlingRights = {
@@ -267,52 +268,19 @@ function handleDrop(e) {
             enPassantTarget = coordinatesToNotation(to.file, passedRank);
         } else {
 
-            console.log("Clearing en passant target:", enPassantTarget);
         }
     }
 
-    // if (draggedPiece.dataset.type === "pawn" && targetSquare.id === enPassantTarget) {
-
-    //     // determine the location of the pawn being captured
-    //     const to = notationToCoordinates(targetSquare.id);
-    //     const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank + 1 : to.rank - 1;
-    //     const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
-    //     const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
-    //     if (capturedPawnElement) {
-    //         document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
-    //         delete currentPosition[capturedPawnSquare];
-    //     }
-    // }
-
     if (draggedPiece.dataset.type === "pawn" && targetSquare.id === enPassantTarget) {
+
         // determine the location of the pawn being captured
         const to = notationToCoordinates(targetSquare.id);
-        console.log("Target coordinates:", to);
-
         const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank + 1 : to.rank - 1;
-        console.log("Captured pawn rank:", capturedPawnRank);
-
         const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
-        console.log("Captured pawn square:", capturedPawnSquare);
-
-        // Check if the square element exists
-        const squareElement = document.getElementById(capturedPawnSquare);
-        console.log("Square element exists:", !!squareElement);
-
-        // Check what's in the square
-        if (squareElement) {
-            console.log("Square contents:", squareElement.innerHTML);
-        }
-
-        const capturedPawnElement = squareElement ? squareElement.querySelector(".piece") : null;
-        console.log("Found piece element?", !!capturedPawnElement);
-
+        const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
         if (capturedPawnElement) {
             document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
-            console.log("Successfully removed captured pawn!");
             delete currentPosition[capturedPawnSquare];
-        } else {
-            console.error("Failed to find pawn to capture!");
         }
     }
 
@@ -324,10 +292,37 @@ function handleDrop(e) {
     // update the board state object
     updatePosition(sourceSquare.id, targetSquare.id);
 
+    let previousEnPassantTarget = enPassantTarget;
+
+    if (draggedPiece.dataset.type === "pawn") {
+        const from = notationToCoordinates(sourceSquare.id);
+        const to = notationToCoordinates(targetSquare.id);
+
+        if (Math.abs(to.rank - from.rank) === 2) {
+            const passedRank = (from.rank + to.rank) / 2;
+            enPassantTarget = coordinatesToNotation(to.file, passedRank);
+        } else {
+            if (targetSquare.id === previousEnPassantTarget) {
+                const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank - 1 : to.rank + 1;
+                const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
+                const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
+
+                if (capturedPawnElement) {
+                    document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
+                    delete currentPosition[capturedPawnSquare];
+                }
+            }
+            enPassantTarget = null;
+        }
+    } else {
+        enPassantTarget = null;
+    }
+
     // switch turns
     activePlayer = activePlayer === "white" ? "black" : "white";
 
     updateTurnIndicator();
+
 }
 
 function handleDragEnd(e) {
@@ -335,8 +330,8 @@ function handleDragEnd(e) {
 }
 
 function updateTurnIndicator() {
-    const indicator = document.getElementById("turn-indicator");
-    indicator.textContent = `${activePlayer.charAt(0).toUpperCase() + activePlayer.slice(1)}'s turn`;
+    const turnIndicator = document.getElementById("turn-indicator");
+    turnIndicator.textContent = `${activePlayer.charAt(0).toUpperCase() + activePlayer.slice(1)}'s turn`;
 }
 
 // initialise chessboard and its drag and drop handlers
