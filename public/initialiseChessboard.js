@@ -101,25 +101,26 @@ function isValidPawnMove(fromSquare, toSquare, piece) {
         // diagonal capture
         if (isOccupiedByOpponent(toSquare, color)) {
             return true;
-
         }
-        // In the diagonal capture section
-        console.log("Pawn capture attempt:", {
-            fromSquare,
-            toSquare,
-            fileDiff,
-            rankDiff,
-            direction,
-            isOccupied: isOccupied(toSquare),
-            targetPiece: currentPosition[toSquare],
-            isOpponent: isOccupiedByOpponent(toSquare, color)
-        });
-        console.log("Current board state:", currentPosition);
 
         // enpassant capture
         if (toSquare === enPassantTarget) {
             return true;
         }
+
+        // debug code
+        // console.log("capture attempt:", {
+        //     fromSquare,
+        //     toSquare,
+        //     fileDiff,
+        //     rankDiff,
+        //     direction,
+        //     isOccupied: isOccupied(toSquare),
+        //     targetPiece: currentPosition[toSquare],
+        //     isOpponent: isOccupiedByOpponent(toSquare, color)
+        // });
+        // console.log("Current board state:", currentPosition);
+
     }
 
     // or no valid move was found
@@ -164,8 +165,6 @@ function isValidRookMove(fromSquare, toSquare, piece) {
     return true;
 
 }
-
-
 
 // convert algebraic notation to coordinates
 function notationToCoordinates(squareId) {
@@ -255,16 +254,89 @@ function handleDrop(e) {
         }
     }
 
+    // determine if the moved piece has become en passant target
+    if (draggedPiece.dataset.type === "pawn") {
+        const from = notationToCoordinates(sourceSquare.id);
+        const to = notationToCoordinates(targetSquare.id);
+
+        // if it's a two square pawn move
+        if (Math.abs(to.rank - from.rank) === 2) {
+
+            // set en passant target to the square behind the pawn
+            const passedRank = (from.rank + to.rank) / 2;
+            enPassantTarget = coordinatesToNotation(to.file, passedRank);
+        } else {
+
+            console.log("Clearing en passant target:", enPassantTarget);
+        }
+    }
+
+    // if (draggedPiece.dataset.type === "pawn" && targetSquare.id === enPassantTarget) {
+
+    //     // determine the location of the pawn being captured
+    //     const to = notationToCoordinates(targetSquare.id);
+    //     const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank + 1 : to.rank - 1;
+    //     const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
+    //     const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
+    //     if (capturedPawnElement) {
+    //         document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
+    //         delete currentPosition[capturedPawnSquare];
+    //     }
+    // }
+
+    if (draggedPiece.dataset.type === "pawn" && targetSquare.id === enPassantTarget) {
+        // determine the location of the pawn being captured
+        const to = notationToCoordinates(targetSquare.id);
+        console.log("Target coordinates:", to);
+
+        const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank + 1 : to.rank - 1;
+        console.log("Captured pawn rank:", capturedPawnRank);
+
+        const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
+        console.log("Captured pawn square:", capturedPawnSquare);
+
+        // Check if the square element exists
+        const squareElement = document.getElementById(capturedPawnSquare);
+        console.log("Square element exists:", !!squareElement);
+
+        // Check what's in the square
+        if (squareElement) {
+            console.log("Square contents:", squareElement.innerHTML);
+        }
+
+        const capturedPawnElement = squareElement ? squareElement.querySelector(".piece") : null;
+        console.log("Found piece element?", !!capturedPawnElement);
+
+        if (capturedPawnElement) {
+            document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
+            console.log("Successfully removed captured pawn!");
+            delete currentPosition[capturedPawnSquare];
+        } else {
+            console.error("Failed to find pawn to capture!");
+        }
+    }
+
+
     // move the piece in the target square
     targetSquare.appendChild(draggedPiece);
+
 
     // update the board state object
     updatePosition(sourceSquare.id, targetSquare.id);
 
+    // switch turns
+    activePlayer = activePlayer === "white" ? "black" : "white";
+
+    updateTurnIndicator();
 }
 
 function handleDragEnd(e) {
     // as yet unsure what to put here
+}
+
+function updateTurnIndicator() {
+    const indicator = document.getElementById("turn-indicator");
+    indicator.textContent = `${activePlayer.charAt(0).toUpperCase() + activePlayer.slice(1)}'s turn`;
 }
 
 // initialise chessboard and its drag and drop handlers
