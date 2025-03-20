@@ -66,6 +66,7 @@ function isValidMove(fromSquare, toSquare, piece) {
     }
 }
 
+// rule for pawns normal movement
 function isValidPawnMove(fromSquare, toSquare, piece) {
     // convert squares to coordinates
     const from = notationToCoordinates(fromSquare);
@@ -128,6 +129,7 @@ function isValidPawnMove(fromSquare, toSquare, piece) {
     return false;
 }
 
+// rule for rooks normal movement
 function isValidRookMove(fromSquare, toSquare, piece) {
 
     // convert squares to coordinates
@@ -188,6 +190,31 @@ function isValidRookMove(fromSquare, toSquare, piece) {
     return true;
 }
 
+// rule for knight movement
+function isValidKnightMove(fromSquare, toSquare, piece) {
+    // convert squares to coordinates
+    const from = notationToCoordinates(fromSquare);
+    const to = notationToCoordinates(toSquare);
+    const color = piece.dataset.color;
+
+    // calculate change in rank and file
+    const rankDiff = Math.abs(to.rank - from.rank);
+    const fileDiff = Math.abs(to.file - from.file);
+
+    let isLShape = (fileDiff === 1 && rankDiff === 2) || (fileDiff === 2 && rankDiff === 1);
+
+    if (!isLShape) {
+        return false;
+    }
+
+    if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
+        return false;
+    }
+
+    return true;
+}
+
+// rule for bishops movement
 function isValidBishopMove(fromSquare, toSquare, piece) {
     // convert squares to coordinates
     const from = notationToCoordinates(fromSquare);
