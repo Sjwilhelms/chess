@@ -135,37 +135,62 @@ function isValidRookMove(fromSquare, toSquare, piece) {
     const to = notationToCoordinates(toSquare);
     const color = piece.dataset.color;
 
-    // calculate change in rank and file
-    const rankDiff = to.rank - from.rank;
-    const fileDiff = Math.abs(to.file - from.file);
 
-    // movement 
+
+    // rook must not change file or rank
     if (!(from.file === to.file || from.rank === to.rank)) {
         return false;
     }
 
+    // if moving horizontally
     if (from.file === to.file) {
-        const step = from.file < to.file ? 1 : -1;
-        for (let f = from.file + step; f !== to.file; f += step) {
-            if (isOccupied(coordinatesToNotation(f, from.file))) {
-                return false;
-            }
-        }
-    } else {
+
+        // determine step direction
         const step = from.rank < to.rank ? 1 : -1;
+
+        // iterate through each square between  start and end
         for (let r = from.rank + step; r !== to.rank; r += step) {
-            if (isOccupied(coordinatesToNotation(from.rank, r))) {
+
+            // check if target square is occupied
+            if (isOccupied(coordinatesToNotation(from.file, r))) {
                 return false;
             }
         }
+
+        // if moving vertically
+    } else if (from.rank === to.rank) {
+
+        // determine step direction
+        const step = from.file < to.file ? 1 : -1;
+
+        // iterate through each square between start and the target
+        for (let f = from.file + step; f !== to.file; f += step) {
+
+            // for each square check if occupied
+            if (isOccupied(coordinatesToNotation(f, from.rank))) {
+
+                // move is invalid if any intervening square is occupied
+                return false;
+            }
+        }
+
+        // if neither file nor rank is the same move is invalid
+    } else {
+        return false;
     }
 
+    // check if destination square is occupied by a piece of the same color
     if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
         return false;
     }
-    return true;
 
+    // the move is valid
+    return true;
 }
+
+
+
+
 
 // convert algebraic notation to coordinates
 function notationToCoordinates(squareId) {
