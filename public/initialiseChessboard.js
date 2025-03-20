@@ -268,15 +268,13 @@ function isValidKingMove(fromSquare, toSquare, piece) {
     const rankDiff = Math.abs(to.rank - from.rank);
     const fileDiff = Math.abs(to.file - from.file);
 
-    // combine the rules for the rook and the bishop
-    if (!(from.file === to.file || from.rank === to.rank || !(fileDiff !== rankDiff))) {
+    if (rankDiff > 1 || fileDiff > 1) {
         return false;
     }
 
-    if (rankDiff !== 1 || fileDiff !== 1) {
+    if (rankDiff === 0 && fileDiff === 0) {
         return false;
     }
-
     if (isOccupied(toSquare) && !isOccupiedByOpponent(toSquare, color)) {
         return false;
     }
