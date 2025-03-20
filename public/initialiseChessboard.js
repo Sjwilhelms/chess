@@ -276,29 +276,43 @@ function handleDrop(e) {
     // update the board state object
     updatePosition(sourceSquare.id, targetSquare.id);
 
+    // the en passant is only the target on the current turn
     let previousEnPassantTarget = enPassantTarget;
 
+    // only a pawn can take en passant
     if (draggedPiece.dataset.type === "pawn") {
         const from = notationToCoordinates(sourceSquare.id);
         const to = notationToCoordinates(targetSquare.id);
 
+        // if a pawn moves two squares
         if (Math.abs(to.rank - from.rank) === 2) {
+            // calculate the square that was passed over
             const passedRank = (from.rank + to.rank) / 2;
+            // set this square as the en passant target for this turn
             enPassantTarget = coordinatesToNotation(to.file, passedRank);
         } else {
+            // check if this move is an en passant capture
             if (targetSquare.id === previousEnPassantTarget) {
+                // the captured pawn wont be on the target square
+                // take the file and then -/+ 1 depending on white or black
                 const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank - 1 : to.rank + 1;
+                // calculate the square where the captured pawn is located
                 const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
+                // get the captured pawn element
                 const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
 
                 if (capturedPawnElement) {
+                    // remove captured pawn from the DOM
                     document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
+                    // remove from position tracking
                     delete currentPosition[capturedPawnSquare];
                 }
             }
+            // en passant is only available for one move
             enPassantTarget = null;
         }
     } else {
+        // if a non pawn is moved the opportunity is gone
         enPassantTarget = null;
     }
 
