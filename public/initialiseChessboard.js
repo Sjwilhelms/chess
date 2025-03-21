@@ -47,23 +47,39 @@ function isValidMove(fromSquare, toSquare, piece) {
     // checks if it's the active players turn
     if (piece.dataset.color !== activePlayer) return false;
 
+
+    let isValid = false;
     // piece specific validation logic
     switch (piece.dataset.type) {
         case "pawn":
-            return isValidPawnMove(fromSquare, toSquare, piece);
+            isValid = isValidPawnMove(fromSquare, toSquare, piece);
+            break;
         case "knight":
-            return isValidKnightMove(fromSquare, toSquare, piece);
+            isValid = isValidKnightMove(fromSquare, toSquare, piece);
+            break;
         case "bishop":
-            return isValidBishopMove(fromSquare, toSquare, piece);
+            isValid = isValidBishopMove(fromSquare, toSquare, piece);
+            break;
         case "rook":
-            return isValidRookMove(fromSquare, toSquare, piece);
+            isValid = isValidRookMove(fromSquare, toSquare, piece);
+            break;
         case "queen":
-            return isValidQueenMove(fromSquare, toSquare, piece);
+            isValid = isValidQueenMove(fromSquare, toSquare, piece);
+            break;
         case "king":
-            return isValidKingMove(fromSquare, toSquare, piece);
+            isValid = isValidKingMove(fromSquare, toSquare, piece);
+            break;
         default:
-            return false;
+            isValid = false;
     }
+
+    if (!isValid) return false;
+
+    if (wouldKingBeExposedToCheck(fromSquare, toSquare, piece)) {
+        return false;
+    }
+
+    return true;
 }
 
 // validates a chess move for seeing if the king is in check
@@ -392,13 +408,13 @@ function isValidCastlingMove(fromSquare, toSquare, piece) {
     let kingPassesThrough = [];
 
     if (isKingSideCastling && color === "white") {
-        kingPassesThrough = ["f1"];
+        kingPassesThrough = ["f1", "g1"];
     } else if (isQueenSideCastling && color === "white") {
-        kingPassesThrough = ["d1"];
+        kingPassesThrough = ["d1", "c1"];
     } else if (isKingSideCastling && color === "black") {
-        kingPassesThrough = ["f8"];
+        kingPassesThrough = ["f8", "g8"];
     } else if (isQueenSideCastling && color === "black") {
-        kingPassesThrough = ["d8"];
+        kingPassesThrough = ["d8", "c8"];
     }
 
     for (const square of kingPassesThrough) {
@@ -409,6 +425,7 @@ function isValidCastlingMove(fromSquare, toSquare, piece) {
     return true;
 }
 
+// check if king is in check
 function isKingInCheck(color) {
     let kingSquare = null;
     for (const [square, pieceInfo] of Object.entries(currentPosition)) {
@@ -440,11 +457,12 @@ function isKingInCheck(color) {
     return false;
 }
 
+// check if King would go into check for the purpose of castling
 function wouldKingBeInCheckAt(targetSquare, color) {
     let kingSquare = null;
 
-    for (const [square, pieceinfo] of Object.entries(currentPosition)) {
-        if (pieceinfo.type === "king" && pieceinfo.color === color) {
+    for (const [square, pieceInfo] of Object.entries(currentPosition)) {
+        if (pieceInfo.type === "king" && pieceInfo.color === color) {
             kingSquare = square;
             break;
         }
@@ -485,6 +503,73 @@ function wouldKingBeInCheckAt(targetSquare, color) {
     return isKingInCheck;
 }
 
+// check if the king would be exposed to check by a move
+function wouldKingBeExposedToCheck(fromSquare, toSquare, piece) {
+    const pieceColor = piece.dataset.color;
+
+    const tempPosition = JSON.parse(JSON.stringify(currentPosition));
+
+    const movingPiece = tempPosition[fromSquare];
+
+    if (!movingPiece) return true;
+
+    delete tempPosition[fromSquare];
+
+    if (tempPosition[toSquare]) {
+        delete tempPosition[toSquare];
+    }
+
+    tempPosition[toSquare] = movingPiece;
+
+    if (movingPiece.type === "pawn" && toSquare === enPassantTarget) {
+        const to = notationToCoordinates(toSquare);
+        const capturedPawnRank = pieceColor === "white" ? to.rank - 1 : to.rank + 1;
+        const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
+
+        if (tempPosition[capturedPawnSquare]) {
+            delete tempPosition[capturedPawnSquare];
+        }
+    }
+
+
+    let kingSquare = null;
+
+    for (const [square, pieceInfo] of Object.entries(tempPosition)) {
+        if (pieceInfo.type === "king" && pieceInfo.color === pieceColor) {
+            kingSquare = square;
+            break;
+        }
+    }
+
+    if (kingSquare === null) return true;
+
+    const opponentColor = (pieceColor === "white") ? "black" : "white";
+
+    let isKingInCheck = false;
+
+    const savedPosition = currentPosition;
+    currentPosition = tempPosition;
+
+    for (const [square, pieceInfo] of Object.entries(tempPosition)) {
+        if (pieceInfo.color === opponentColor) {
+            const attackingPiece = {
+                dataset: {
+                    type: pieceInfo.type,
+                    color: pieceInfo.color
+                }
+            };
+
+            if (isValidMoveIgnoringTurns(square, kingSquare, attackingPiece)) {
+                isKingInCheck = true;
+                break;
+            }
+        }
+    }
+
+    currentPosition = savedPosition;
+
+    return isKingInCheck;
+}
 
 function isValidMoveWithCustomBoard(fromSquare, toSquare, piece, customBoard) {
     const originalPosition = currentPosition;
@@ -593,6 +678,7 @@ function handleDrop(e) {
     // default behaviour would block drops
     e.preventDefault();
 
+    // place logic in a try block to reduce the risk of script errors
     try {
 
         // get the id from the data transfer
@@ -617,10 +703,12 @@ function handleDrop(e) {
 
         clearHighlights();
 
+        // if the piece is dropped back on it's own square nothing happens
         if (sourceSquare.id === targetSquare.id) {
             return;
         }
 
+        // if the move is invalid nothing happens
         if (!isValidMove(sourceSquare.id, targetSquare.id, draggedPiece)) {
             return;
         }
@@ -701,13 +789,16 @@ function handleDrop(e) {
             enPassantTarget = null;
         }
 
+        // check if piece is a king
         if (draggedPiece.dataset.type === "king") {
             const from = notationToCoordinates(sourceSquare.id);
             const to = notationToCoordinates(targetSquare.id);
 
+            // check the king is moving 2 as opposed to usual 1
             if (Math.abs(to.file - from.file) === 2) {
                 let rookFromSquare, rookToSquare;
 
+                // determine Rook movement based on the King target square
                 if (targetSquare.id === "g1") {
                     rookFromSquare = "h1";
                     rookToSquare = "f1";
@@ -722,18 +813,21 @@ function handleDrop(e) {
                     rookToSquare = "d8";
                 }
 
+                // move the rook
                 const rookElement = document.getElementById(rookFromSquare).querySelector(".piece");
                 document.getElementById(rookToSquare).appendChild(rookElement);
 
+                // update the position object
                 updatePosition(rookFromSquare, rookToSquare);
             }
 
+            // reset castling rights
             castlingRights[draggedPiece.dataset.color].kingSide = false;
             castlingRights[draggedPiece.dataset.color].queenSide = false;
 
         }
 
-
+        // once the rook has moved castling rights are gone
         if (draggedPiece.dataset.type === "rook") {
             if (sourceSquare.id === "a1") {
                 castlingRights.white.queenSide = false;
@@ -745,26 +839,32 @@ function handleDrop(e) {
                 castlingRights.black.kingSide = false;
             }
         }
+
         // switch turns
         activePlayer = activePlayer === "white" ? "black" : "white";
 
-
+        // clear move highlighting
         clearHighlights();
 
+        // update who's turn it is
         updateTurnIndicator();
 
     } catch (error) {
 
+        // clear highlights
         clearHighlights();
 
+        // error handling
         console.error("Error during drag and drop:", error);
     }
 }
+
 
 function handleDragEnd(e) {
     clearHighlights();
 }
 
+// function to update the turn indicator
 function updateTurnIndicator() {
     const turnIndicator = document.getElementById("turn-indicator");
     turnIndicator.textContent = `${activePlayer.charAt(0).toUpperCase() + activePlayer.slice(1)}'s turn`;
