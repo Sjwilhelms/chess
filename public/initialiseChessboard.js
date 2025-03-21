@@ -558,9 +558,13 @@ function highlightPossibleMoves(piece) {
 }
 
 function clearHighlights() {
-    const squares = document.querySelectorAll(".highlight-move .highlight-capture");
-    squares.forEach(square => {
-        square.classList.remove("highlight-move", "highlight-capture");
+    const moveHighlights = document.querySelectorAll(".highlight-move");
+    moveHighlights.forEach(square => {
+        square.classList.remove("highlight-move");
+    });
+    const captureHighlights = document.querySelectorAll(".highlight-capture");
+    captureHighlights.forEach(square => {
+        square.classList.remove("highlight-capture");
     });
 }
 
