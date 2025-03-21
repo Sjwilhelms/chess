@@ -358,7 +358,7 @@ function isValidCastlingMove(fromSquare, toSquare, piece) {
 
     let rookPiece = getPieceOnSquare(rookSquare);
 
-    if (rookPiece === "null" || rookPiece.type !== "rook" || rookPiece.color !== color) {
+    if (rookPiece === null || rookPiece.dataset.type !== "rook" || rookPiece.dataset.color !== color) {
         return false;
     }
 
@@ -531,6 +531,39 @@ function isOccupiedByOpponent(squareId, playerColor) {
     return isOccupied(squareId) && currentPosition[squareId].color !== playerColor;
 }
 
+function highlightPossibleMoves(piece) {
+    const currentSquare = piece.parentNode;
+    const fromSquareId = currentSquare.id;
+    const pieceColor = piece.dataset.color;
+    const pieceType = piece.dataset.color;
+
+    clearHighlights();
+
+    const squares = document.querySelectorAll(".square");
+    squares.forEach(square => {
+        const toSquareId = square.id;
+
+        if (toSquareId === fromSquareId) return;
+
+        if (isValidMove(fromSquareId, toSquareId, piece)) {
+            if (isOccupied(toSquareId)) {
+                if (isOccupiedByOpponent(toSquareId, pieceColor)) {
+                    square.classList.add("highlight-capture");
+                }
+            } else {
+                square.classList.add("highlight-move");
+            }
+        }
+    })
+}
+
+function clearHighlights() {
+    const squares = document.querySelectorAll(".highlight-move .highlight-capture");
+    squares.forEach(square => {
+        square.classList.remove("highlight-move", "highlight-capture");
+    });
+}
+
 // html drag and drop event handler functions
 
 function handleDragStart(e) {
@@ -539,6 +572,8 @@ function handleDragStart(e) {
 
     // specify "move" behaviour
     e.dataTransfer.effectAllowed = "move";
+
+    highlightPossibleMoves(this);
 }
 
 function handleDragOver(e) {
@@ -554,158 +589,176 @@ function handleDrop(e) {
     // default behaviour would block drops
     e.preventDefault();
 
-    // get the id from the data transfer
-    const pieceId = e.dataTransfer.getData("text");
+    try {
 
-    // get the id from the piece being dragged
-    const draggedPiece = document.querySelector(`.piece[data-id="${pieceId}"]`);
+        // get the id from the data transfer
+        const pieceId = e.dataTransfer.getData("text");
 
-    // exit if piece not found
-    if (!draggedPiece) return;
+        // get the id from the piece being dragged
+        const draggedPiece = document.querySelector(`.piece[data-id="${pieceId}"]`);
 
-    // get the square the piece is coming from
-    const sourceSquare = draggedPiece.parentNode;
+        // exit if piece not found
+        if (!draggedPiece) return;
 
-    // get the drop target square
-    let targetSquare = e.target;
+        // get the square the piece is coming from
+        const sourceSquare = draggedPiece.parentNode;
 
-    // if dropped directly on a piece get it's parent square instead
-    if (targetSquare.classList.contains('piece')) {
-        targetSquare = targetSquare.parentNode;
-    }
+        // get the drop target square
+        let targetSquare = e.target;
 
-    if (!isValidMove(sourceSquare.id, targetSquare.id, draggedPiece)) {
-        return;
-    }
+        // if dropped directly on a piece get it's parent square instead
+        if (targetSquare.classList.contains('piece')) {
+            targetSquare = targetSquare.parentNode;
+        }
 
-    // piece capture! remove any existing piece of the opposite color at the target
-    // is there a piece in the square?
-    const existingPiece = targetSquare.querySelector('.piece');
-    // check if there's a piece in the target square
-    if (existingPiece) {
-        // if the pieces are the same color nothing happens
-        if (existingPiece !== draggedPiece && existingPiece.dataset.color === draggedPiece.dataset.color) {
+        clearHighlights();
+
+        if (sourceSquare.id === targetSquare.id) {
             return;
         }
-        // piece capture! remove the opponents piece
-        if (existingPiece !== draggedPiece && existingPiece.dataset.color !== draggedPiece.dataset.color) {
-            targetSquare.removeChild(existingPiece);
+
+        if (!isValidMove(sourceSquare.id, targetSquare.id, draggedPiece)) {
+            return;
         }
-    }
 
-    // determine if the moved piece has become en passant target
-    if (draggedPiece.dataset.type === "pawn") {
-        const from = notationToCoordinates(sourceSquare.id);
-        const to = notationToCoordinates(targetSquare.id);
-
-        // if it's a two square pawn move
-        if (Math.abs(to.rank - from.rank) === 2) {
-
-            // set en passant target to the square behind the pawn
-            const passedRank = (from.rank + to.rank) / 2;
-            enPassantTarget = coordinatesToNotation(to.file, passedRank);
-        }
-    }
-
-    // move the piece in the target square
-    targetSquare.appendChild(draggedPiece);
-
-
-    // update the board state object
-    updatePosition(sourceSquare.id, targetSquare.id);
-
-    // the en passant is only the target on the current turn
-    let previousEnPassantTarget = enPassantTarget;
-
-    // only a pawn can take en passant
-    if (draggedPiece.dataset.type === "pawn") {
-        const from = notationToCoordinates(sourceSquare.id);
-        const to = notationToCoordinates(targetSquare.id);
-
-        // if a pawn moves two squares
-        if (Math.abs(to.rank - from.rank) === 2) {
-            // calculate the square that was passed over
-            const passedRank = (from.rank + to.rank) / 2;
-            // set this square as the en passant target for this turn
-            enPassantTarget = coordinatesToNotation(to.file, passedRank);
-        } else {
-            // check if this move is an en passant capture
-            if (targetSquare.id === previousEnPassantTarget) {
-                // the captured pawn wont be on the target square
-                // take the file and then -/+ 1 depending on white or black
-                const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank - 1 : to.rank + 1;
-                // calculate the square where the captured pawn is located
-                const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
-                // get the captured pawn element
-                const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
-
-                if (capturedPawnElement) {
-                    // remove captured pawn from the DOM
-                    document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
-                    // remove from position tracking
-                    delete currentPosition[capturedPawnSquare];
-                }
+        // piece capture! remove any existing piece of the opposite color at the target
+        // is there a piece in the square?
+        const existingPiece = targetSquare.querySelector('.piece');
+        // check if there's a piece in the target square
+        if (existingPiece) {
+            // if the pieces are the same color nothing happens
+            if (existingPiece !== draggedPiece && existingPiece.dataset.color === draggedPiece.dataset.color) {
+                return;
             }
-            // en passant is only available for one move
+            // piece capture! remove the opponents piece
+            if (existingPiece !== draggedPiece && existingPiece.dataset.color !== draggedPiece.dataset.color) {
+                targetSquare.removeChild(existingPiece);
+            }
+        }
+
+        // determine if the moved piece has become en passant target
+        if (draggedPiece.dataset.type === "pawn") {
+            const from = notationToCoordinates(sourceSquare.id);
+            const to = notationToCoordinates(targetSquare.id);
+
+            // if it's a two square pawn move
+            if (Math.abs(to.rank - from.rank) === 2) {
+
+                // set en passant target to the square behind the pawn
+                const passedRank = (from.rank + to.rank) / 2;
+                enPassantTarget = coordinatesToNotation(to.file, passedRank);
+            }
+        }
+
+        // move the piece in the target square
+        targetSquare.appendChild(draggedPiece);
+
+
+        // update the board state object
+        updatePosition(sourceSquare.id, targetSquare.id);
+
+        // the en passant is only the target on the current turn
+        let previousEnPassantTarget = enPassantTarget;
+
+        // only a pawn can take en passant
+        if (draggedPiece.dataset.type === "pawn") {
+            const from = notationToCoordinates(sourceSquare.id);
+            const to = notationToCoordinates(targetSquare.id);
+
+            // if a pawn moves two squares
+            if (Math.abs(to.rank - from.rank) === 2) {
+                // calculate the square that was passed over
+                const passedRank = (from.rank + to.rank) / 2;
+                // set this square as the en passant target for this turn
+                enPassantTarget = coordinatesToNotation(to.file, passedRank);
+            } else {
+                // check if this move is an en passant capture
+                if (targetSquare.id === previousEnPassantTarget) {
+                    // the captured pawn wont be on the target square
+                    // take the file and then -/+ 1 depending on white or black
+                    const capturedPawnRank = draggedPiece.dataset.color === "white" ? to.rank - 1 : to.rank + 1;
+                    // calculate the square where the captured pawn is located
+                    const capturedPawnSquare = coordinatesToNotation(to.file, capturedPawnRank);
+                    // get the captured pawn element
+                    const capturedPawnElement = document.getElementById(capturedPawnSquare).querySelector(".piece");
+
+                    if (capturedPawnElement) {
+                        // remove captured pawn from the DOM
+                        document.getElementById(capturedPawnSquare).removeChild(capturedPawnElement);
+                        // remove from position tracking
+                        delete currentPosition[capturedPawnSquare];
+                    }
+                }
+                // en passant is only available for one move
+                enPassantTarget = null;
+            }
+        } else {
+            // if a non pawn is moved the opportunity is gone
             enPassantTarget = null;
         }
-    } else {
-        // if a non pawn is moved the opportunity is gone
-        enPassantTarget = null;
-    }
 
-    if (draggedPiece.dataset.type === "king") {
-        const from = notationToCoordinates(sourceSquare.id);
-        const to = notationToCoordinates(targetSquare.id);
+        if (draggedPiece.dataset.type === "king") {
+            const from = notationToCoordinates(sourceSquare.id);
+            const to = notationToCoordinates(targetSquare.id);
 
-        if (Math.abs(to.file - from.file) === 2) {
-            let rookFromSquare, rookToSquare;
+            if (Math.abs(to.file - from.file) === 2) {
+                let rookFromSquare, rookToSquare;
 
-            if (targetSquare.id === "g1") {
-                rookFromSquare = "h1";
-                rookToSquare = "f1";
-            } else if (targetSquare.id === "c1") {
-                rookFromSquare = "a1";
-                rookToSquare = "d1";
-            } else if (targetSquare.id === "g8") {
-                rookFromSquare = "h8";
-                rookToSquare = "f8";
-            } else if (targetSquare.id === "c8") {
-                rookFromSquare = "a8";
-                rookToSquare = "d8";
+                if (targetSquare.id === "g1") {
+                    rookFromSquare = "h1";
+                    rookToSquare = "f1";
+                } else if (targetSquare.id === "c1") {
+                    rookFromSquare = "a1";
+                    rookToSquare = "d1";
+                } else if (targetSquare.id === "g8") {
+                    rookFromSquare = "h8";
+                    rookToSquare = "f8";
+                } else if (targetSquare.id === "c8") {
+                    rookFromSquare = "a8";
+                    rookToSquare = "d8";
+                }
+
+                const rookElement = document.getElementById(rookFromSquare).querySelector(".piece");
+                document.getElementById(rookToSquare).appendChild(rookElement);
+
+                updatePosition(rookFromSquare, rookToSquare);
             }
 
-            const rookElement = document.getElementById(rookFromSquare).querySelector(".piece");
-            document.getElementById(rookToSquare).appendChild(rookElement);
+            castlingRights[draggedPiece.dataset.color].kingSide = false;
+            castlingRights[draggedPiece.dataset.color].queenSide = false;
 
-            updatePosition(rookFromSquare, rookToSquare);
         }
 
-        castlingRights[draggedPiece.dataset.color].kingSide = false;
-        castlingRights[draggedPiece.dataset.color].queenSide = false;
 
-    }
-
-
-    if (draggedPiece.dataset.type === "rook") {
-        if (sourceSquare.id === "a1") {
-            castlingRights.white.queenSide = false;
-        } else if (sourceSquare.id === "h1") {
-            castlingRights.white.kingSide = false;
-        } else if (sourceSquare.id === "a8") {
-            castlingRights.black.queenSide = false;
-        } else if (sourceSquare.id === "h8") {
-            castlingRights.black.kingSide = false;
+        if (draggedPiece.dataset.type === "rook") {
+            if (sourceSquare.id === "a1") {
+                castlingRights.white.queenSide = false;
+            } else if (sourceSquare.id === "h1") {
+                castlingRights.white.kingSide = false;
+            } else if (sourceSquare.id === "a8") {
+                castlingRights.black.queenSide = false;
+            } else if (sourceSquare.id === "h8") {
+                castlingRights.black.kingSide = false;
+            }
         }
-    }
-    // switch turns
-    activePlayer = activePlayer === "white" ? "black" : "white";
+        // switch turns
+        activePlayer = activePlayer === "white" ? "black" : "white";
 
-    updateTurnIndicator();
+
+        clearHighlights();
+
+        updateTurnIndicator();
+
+    } catch (error) {
+
+        clearHighlights();
+
+        console.error("Error during drag and drop:", error);
+    }
 }
 
 function handleDragEnd(e) {
-    // as yet unsure what to put here
+    clearHighlights();
 }
 
 function updateTurnIndicator() {
